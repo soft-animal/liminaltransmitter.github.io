@@ -26,15 +26,15 @@ function morelines(){
         distanceBetweenLines = width / (numberOctaves - 1)
         x = octave * distanceBetweenLines
         if ((octave === 0) || (octave === numberOctaves-1)) {
-            linedraw(x, 0, x, height, 8, "DarkOrchid")
+            linedraw(x, 0, x, height, 8, "pink")
         } else {
-            linedraw(x, 0, x, height, 4, "DarkOrchid")
+            linedraw(x, 0, x, height, 4, "pink")
         }
         // notes
         for(notes = 0; notes < 8; notes += 1){
             distancebetweennotelines = distanceBetweenLines/8
             x2 = notes * distancebetweennotelines + x
-            linedraw(x2,0,x2,height,1,"green")
+            linedraw(x2,0,x2,height,1,"white")
         }
     }
 }
