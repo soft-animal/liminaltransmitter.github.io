@@ -1,11 +1,34 @@
-// LET"S CREATE A CANVAS!! :)
+// CREATING A CANVAS!! :)
 canvas = document.createElement('canvas')
 document.body.appendChild(canvas)
-width = 1400
-height = 600
-canvas.width = width
-canvas.height = height
-canvas.style.backgroundColor = 'black'
+
+// Responsive canvas sizing
+document.body.style.margin = '0'
+document.body.style.overflow = 'hidden'
+canvas.style.display = 'block'
+canvas.style.position = 'fixed'
+canvas.style.top = '0'
+canvas.style.left = '0'
+
+function updateCanvasSize() {
+    // Use full window dimensions
+    width = window.innerWidth
+    height = window.innerHeight
+    canvas.width = width
+    canvas.height = height
+    canvas.style.width = '100%'
+    canvas.style.height = '100%'
+    canvas.style.backgroundColor = 'black'
+    canvasBounds = canvas.getBoundingClientRect()
+}
+
+updateCanvasSize()
+
+window.addEventListener("resize", () => {
+    updateCanvasSize()
+    morelines()
+    listofcircles.forEach(circl => circle(circl[0], circl[1]))
+})
 
 function linedraw(a,b,c,d, width, color){
     ctx = canvas.getContext("2d")
@@ -62,15 +85,18 @@ function circleblack(x,y){
 
 canvasBounds = canvas.getBoundingClientRect()
 
+//Makes two empty lists of circles
 listofcircles = []
 listofsynths = []
 
+//Ability to click circles + drag
 function clickingcircle(event){
 x = event.clientX - canvasBounds.left
 y = event.clientY - canvasBounds.top
 circle(x,y)
 listofcircles.push([x,y])
-synthmaker(x)
+synthmaker(x,y)
+isDragging = true
 }
 
 function distance(x1,y1,x2,y2) {
@@ -125,45 +151,146 @@ function turnXintoHZ(x) {
     return (lowestNote * Math.pow(Math.pow(Math.pow(2, numberOctaves-1), 1/width), x))
 }
 
-function synthmaker(x) {
+//Volume Controls
+function turnYtoVolume(y){
+    return -((y/height)*40)
+}
+
+
+//Makes the synth that takes in X for frequency and Y for volume
+function synthmaker(x, y) {
     hz = turnXintoHZ(x)
+    volume = turnYtoVolume(y)
     const synth = new Tone.Synth({
-        portamento: 0,
+        portamento: 0.2,
         oscillator: {
           type: 'square4'
         },
         envelope: {
           attack: 2,
           decay: 1,
-          sustain: 0.2,
-          release: 2
+          sustain: 0.4,
+          release: 3
         }
       }).toDestination()
+
+      //Set initial value based on Y coordinate
+      synth.volume.value = turnYtoVolume(y)
       synth.triggerAttack(hz)
       listofsynths.push(synth)
 }
 
-// Make pressing D start or stop a drum beat
-// Keep track of if drums are playing
+//Drag-and-click to make sliding tones
+let isDragging = false
+let startDrag = null
+
+function mouseDrag(event) {
+    if (isDragging && listofsynths.length > 0) {
+        const x = event.clientX - canvasBounds.left
+        const y = event.clientY - canvasBounds.top
+        const lastSynth = listofsynths[listofsynths.length - 1]
+        const hz = turnXintoHZ(x)
+        const volume = turnYtoVolume(y)
+        lastSynth.frequency.rampTo(hz, 0.1)
+        lastSynth.volume.rampTo(volume, 0.1)
+
+        //Update circle visual
+        const lastCircle = listofcircles.length - 1
+        listofcircles[lastCircle] = [x, y]
+
+        //Redraw the circle
+        ctx.clearRect(0, 0, width, height)
+        morelines()
+        listofcircles.forEach(circl => circle(circl[0], circl[1]))
+    }
+}
+ //Listener for the mouse dragging
+canvas.addEventListener("mousemove", mouseDrag)
+canvas.addEventListener("mouseup", () => isDragging = false)
+
+//Adding drums
 drumsPlaying = false
-drum = new Tone.MembraneSynth().toDestination();
+drum = new Tone.MembraneSynth({
+    pitchDecay: 0.05,
+    octaves: 1,
+    oscillator: {
+        type: "sine"
+    },
+    envelope: {
+        attack: 0.001,
+        decay: 0.2,
+        sustain: 0.01,
+        release: 0.2
+    }
+}).toDestination()
+
 // Length of each beat
-sep = Tone.Time("8n").toSeconds()
+sep = Tone.Time("16n").toSeconds()
+
+// Three different beats 
+function pattern1(time){
+    drum.triggerAttackRelease("C3", "32n", time + 0 * sep)
+    drum.triggerAttackRelease("C3", "32n", time + 1 * sep)
+    drum.triggerAttackRelease("E3", "32n", time + 2 * sep)
+    drum.triggerAttackRelease("G3", "32n", time + 3 * sep)
+    drum.triggerAttackRelease("C3", "32n", time + 4 * sep)
+    drum.triggerAttackRelease("E3", "32n", time + 5 * sep)
+    drum.triggerAttackRelease("G3", "32n", time + 6 * sep)
+    drum.triggerAttackRelease("C4", "32n", time + 7 * sep)
+    drum.triggerAttackRelease("C3", "32n", time + 8 * sep)
+    drum.triggerAttackRelease("C3", "32n", time + 9 * sep)
+    drum.triggerAttackRelease("E3", "32n", time + 10 * sep)
+    drum.triggerAttackRelease("G3", "32n", time + 11 * sep)
+    drum.triggerAttackRelease("E3", "32n", time + 12 * sep)
+    drum.triggerAttackRelease("G3", "32n", time + 13 * sep)
+    drum.triggerAttackRelease("C4", "32n", time + 14 * sep)
+    drum.triggerAttackRelease("C3", "32n", time + 15 * sep)
+}
+
+function pattern2(time){
+    drum.triggerAttackRelease("C3", "32n", time + 0 * sep)
+    drum.triggerAttackRelease("C3", "32n", time + 1 * sep)
+    drum.triggerAttackRelease("G3", "32n", time + 3 * sep)
+    drum.triggerAttackRelease("C3", "32n", time + 4 * sep)
+    drum.triggerAttackRelease("C3", "32n", time + 6 * sep)
+    drum.triggerAttackRelease("C3", "32n", time + 7 * sep)
+    drum.triggerAttackRelease("G3", "32n", time + 8 * sep)
+    drum.triggerAttackRelease("E3", "32n", time + 9 * sep)
+    drum.triggerAttackRelease("C3", "32n", time + 11 * sep)
+    drum.triggerAttackRelease("C3", "32n", time + 12 * sep)
+    drum.triggerAttackRelease("G3", "32n", time + 13 * sep)
+    drum.triggerAttackRelease("E3", "32n", time + 14 * sep)
+    drum.triggerAttackRelease("E3", "32n", time + 15 * sep)
+}
+
+function pattern3(time){
+    drum.triggerAttackRelease("C3", "32n", time + 0 * sep)
+    drum.triggerAttackRelease("E3", "32n", time + 1 * sep)
+    drum.triggerAttackRelease("G3", "32n", time + 1 * sep)
+    drum.triggerAttackRelease("C3", "32n", time + 2 * sep)
+    drum.triggerAttackRelease("G3", "32n", time + 4 * sep)
+    drum.triggerAttackRelease("C3", "32n", time + 5 * sep)
+    drum.triggerAttackRelease("E3", "32n", time + 6 * sep)
+    drum.triggerAttackRelease("G3", "32n", time + 6 * sep)
+    drum.triggerAttackRelease("C3", "32n", time + 8 * sep)
+    drum.triggerAttackRelease("E3", "32n", time + 9 * sep)
+    drum.triggerAttackRelease("C3", "32n", time + 11 * sep)
+    drum.triggerAttackRelease("G3", "32n", time + 11 * sep)
+    drum.triggerAttackRelease("E3", "32n", time + 12 * sep)
+    drum.triggerAttackRelease("C3", "32n", time + 13 * sep)
+    drum.triggerAttackRelease("G3", "32n", time + 14 * sep)
+    drum.triggerAttackRelease("C3", "32n", time + 15 * sep)
+}
+
+currentPattern = pattern1
 const loop = new Tone.Loop((time) => {
-    // [low, ..., high, ..., low, low, high, ...]
-    drum.triggerAttackRelease("C2", "8n", time + 0 * sep);
-    // .triggerAttackRelease(..., "8n", time + 1 * sep);
-    drum.triggerAttackRelease("C4", "8n", time + 2 * sep);
-    // .triggerAttackRelease(..., "8n", time + 3 * sep);
-    drum.triggerAttackRelease("C2", "8n", time + 4 * sep);
-    drum.triggerAttackRelease("C2", "8n", time + 5 * sep);
-    drum.triggerAttackRelease("C4", "8n", time + 6 * sep);
-    // .triggerAttackRelease(..., "8n", time + 7 * sep);
+    currentPattern(time)
 }, "1n")
 
 document.addEventListener("keydown", (event) => {
     if (event.key === "d") {
         Tone.start()
+        Tone.Transport.bpm.value = 150
         Tone.Transport.start()
         if (drumsPlaying) {
             drumsPlaying = false
@@ -172,5 +299,14 @@ document.addEventListener("keydown", (event) => {
             drumsPlaying = true
             loop.start()
         }
+    }
+    if (event.key === "1") {
+        currentPattern = pattern1
+    }
+    if (event.key === "2") {
+        currentPattern = pattern2
+    }
+    if (event.key === "3") {
+        currentPattern = pattern3
     }
 })
