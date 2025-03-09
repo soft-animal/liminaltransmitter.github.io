@@ -170,10 +170,10 @@ function synthmaker(x, y) {
           type: 'square4'
         },
         envelope: {
-          attack: 2,
-          decay: 1,
+          attack: 0.01,
+          decay: 0.2,
           sustain: 0.4,
-          release: 3
+          release: 0.5
         }
       }).toDestination()
 
@@ -315,69 +315,67 @@ document.addEventListener("keydown", (event) => {
 })
 
 //CRYSTAL CASTLES COMPOSITION
-window.addEventListener('load', () => {
-// buttons
+//Making the composition button
 const ccButton = document.createElement('button')
 document.body.appendChild(ccButton)
 ccButton.innerText = "Alice Practice Mode"
 ccButton.style.position = 'fixed'
-ccButton.style.bottom = '60px' // putting it higher up so they aren't touching
+ccButton.style.bottom = '60px' // putting it higher up
 ccButton.style.right = '20px'
 ccButton.style.padding = '10px'
 ccButton.style.backgroundColor = 'black'
-ccButton.style.color = 'white'
-ccButton.style.border = '2px solid #1affd1'
+ccButton.style.color = 'pink'
+ccButton.style.border = '2px solid pink'
 ccButton.style.fontFamily = 'monospace'
 ccButton.style.zIndex = '100'
 
-// remix button goes above the other one with more space between them
+// remix button goes above the other one
 const remixButton = document.createElement('button')
 document.body.appendChild(remixButton)
-
+remixButton.innerText = "Remix Pattern"
 remixButton.style.position = 'fixed'
-remixButton.style.bottom = '120px' // More separation from the other button
+remixButton.style.bottom = '100px' 
 remixButton.style.right = '20px'
 remixButton.style.padding = '10px'
 remixButton.style.backgroundColor = 'black'
-remixButton.style.color = '#1affd1'
-remixButton.style.border = '2px solid #1affd1'
+remixButton.style.color = 'cyan'
+remixButton.style.border = '2px solid cyan'
 remixButton.style.fontFamily = 'monospace'
-remixButton.style.zIndex = '1000'
+remixButton.style.zIndex = '100'
 remixButton.style.display = 'none' // hidden at first
 
 // add instructions that show when page loads
-const instructions = document.createElement('div')
-document.body.appendChild(instructions)
-instructions.style.position = 'fixed'
-instructions.style.top = '20px'
-instructions.style.left = '20px'
-instructions.style.padding = '15px'
-instructions.style.backgroundColor = 'rgba(0, 0, 0, 0.7)'
-instructions.style.color = 'white'
-instructions.style.fontFamily = 'monospace'
-instructions.style.fontSize = '14px'
-instructions.style.borderRadius = '5px'
-instructions.style.zIndex = '100'
-instructions.style.maxWidth = '350px'
-instructions.innerHTML = `
-  <p><b>Liminal Transmitter</b></p>
+const instructionsDiv = document.createElement('div')
+document.body.appendChild(instructionsDiv)
+instructionsDiv.style.position = 'fixed'
+instructionsDiv.style.top = '20px'
+instructionsDiv.style.left = '20px'
+instructionsDiv.style.padding = '15px'
+instructionsDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.7)'
+instructionsDiv.style.color = 'white'
+instructionsDiv.style.fontFamily = 'monospace'
+instructionsDiv.style.fontSize = '14px'
+instructionsDiv.style.borderRadius = '5px'
+instructionsDiv.style.zIndex = '100'
+instructionsDiv.style.maxWidth = '350px'
+instructionsDiv.innerHTML = `
+  <p><b>Crystal Castles Instrument</b></p>
   <p>- Click anywhere to create sounds</p>
-  <p>- Click & drag to change pitch (horizontal) and volume (vertical)</p>
-  <p>- Press D to toggle drums on/off</p>
-  <p>- Press 1, 2, or 3 to switch between different drum patterns</p>
+  <p>- Click & drag to change pitch</p>
+  <p>- Press D to toggle drums</p>
   <p>- Click "Alice Practice Mode" for algorithmically generated Crystal Castles patterns</p>
-  <p>- Click blue button to generate a new random pattern</p>
+  <p>- Click "Remix Pattern" to cycle through different patterns</p>
   <p>- Hold Shift + Click to delete sounds</p>
 `
 
 // make instructions fade out after 10 seconds
 setTimeout(() => {
-  instructions.style.transition = 'opacity 2s'
-  instructions.style.opacity = '0'
+  instructionsDiv.style.transition = 'opacity 2s'
+  instructionsDiv.style.opacity = '0'
   
   // remove after fade completes
   setTimeout(() => {
-    instructions.remove()
+    instructionsDiv.remove()
   }, 2000)
 }, 10000)
 
@@ -385,174 +383,83 @@ setTimeout(() => {
 let ccInterval = null
 let noteRemovalInterval = null
 let ccModeActive = false
-let currentPattern = null
+let currentRemixStyle = 0
 
-// saving the original mouse things so we can put them back later
-const originalMouseDown = canvas.onmousedown
-const originalMouseMove = canvas.onmousemove
-const originalMouseUp = canvas.onmouseup
-
-// variables like in the coldplay example
+// variables
 let step = 0
 let bar = 0
 let totalSteps = 16
 let totalBars = 4
 
 // scales from crystal castles songs in multiple octaves
-// Vanished + other songs scales (Bb minor)
-const vanishedScale = {
-  right: ['Bb4', 'C5', 'Db5', 'Eb5', 'F5', 'G5', 'Ab5'],
-  rightHigh: ['Bb5', 'C6', 'Db6', 'Eb6', 'F6', 'G6', 'Ab6'], 
-  rightLow: ['Bb3', 'C4', 'Db4', 'Eb4', 'F4', 'G4', 'Ab4'],
-  left: ['Bb3', 'C4', 'Db4', 'Eb4', 'F4', 'G4', 'Ab4'],
-  leftLow: ['Bb2', 'C3', 'Db3', 'Eb3', 'F3', 'G3', 'Ab3']
-}
+const rightHandScale = ['Bb4', 'C5', 'Db5', 'Eb5', 'F5', 'G5', 'Ab5']
+const rightHandScaleHigh = ['Bb5', 'C6', 'Db6', 'Eb6', 'F6', 'G6', 'Ab6'] // higher octave
+const rightHandScaleLow = ['Bb3', 'C4', 'Db4', 'Eb4', 'F4', 'G4', 'Ab4'] // lower octave
+const leftHandScale = ['Bb3', 'C4', 'Db4', 'Eb4', 'F4', 'G4', 'Ab4']
+const leftHandScaleLow = ['Bb2', 'C3', 'Db3', 'Eb3', 'F3', 'G3', 'Ab3'] // extra low for bass
 
-// Magic Spells scales (C# minor)
-const magicSpellsScale = {
-  right: ['C#4', 'D#4', 'E4', 'F#4', 'G#4', 'A4', 'B4'],
-  rightHigh: ['C#5', 'D#5', 'E5', 'F#5', 'G#5', 'A5', 'B5'],
-  rightLow: ['C#3', 'D#3', 'E3', 'F#3', 'G#3', 'A3', 'B3'],
-  left: ['C#3', 'D#3', 'E3', 'F#3', 'G#3', 'A3', 'B3'],
-  leftLow: ['C#2', 'D#2', 'E2', 'F#2', 'G#2', 'A2', 'B2']
-}
+// arpeggio patterns
+const rightHandArp = [
+  [0, 2, 4, 2, 0, 2, 4, 2],  // Bb chord 
+  [5, 0, 2, 0, 5, 0, 2, 0],  // G chord 
+  [3, 5, 0, 5, 3, 5, 0, 5],  // Eb chord 
+  [5, 0, 2, 0, 5, 0, 2, 0]   // G chord again
+]
 
-// Courtship Dating scales (Eb minor)
-const courtshipScale = {
-  right: ['Eb4', 'F4', 'Gb4', 'Ab4', 'Bb4', 'Cb5', 'Db5'],
-  rightHigh: ['Eb5', 'F5', 'Gb5', 'Ab5', 'Bb5', 'Cb6', 'Db6'],
-  rightLow: ['Eb3', 'F3', 'Gb3', 'Ab3', 'Bb3', 'Cb4', 'Db4'],
-  left: ['Eb3', 'F3', 'Gb3', 'Ab3', 'Bb3', 'Cb4', 'Db4'],
-  leftLow: ['Eb2', 'F2', 'Gb2', 'Ab2', 'Bb2', 'Cb3', 'Db3']
-}
+const leftHandChrd = [
+  [0, 2, 4], // Bb chord
+  [5, 0, 2], // G chord
+  [3, 5, 0], // Eb chord
+  [5, 0, 2]  // G chord
+]
 
-// Not In Love scales (Bb minor/Db major)
-const notInLoveScale = {
-  right: ['Bb4', 'C5', 'Db5', 'Eb5', 'F5', 'G5', 'Ab5'],
-  rightHigh: ['Bb5', 'C6', 'Db6', 'Eb6', 'F6', 'G6', 'Ab6'],
-  rightLow: ['Bb3', 'C4', 'Db4', 'Eb4', 'F4', 'G4', 'Ab4'],
-  left: ['Bb3', 'C4', 'Db4', 'Eb4', 'F4', 'G4', 'Ab4'],
-  leftLow: ['Bb2', 'C3', 'Db3', 'Eb3', 'F3', 'G3', 'Ab3']
-}
-
-// Pattern templates from each song
-const patternTemplates = {
-  // Vanished patterns
-  vanished: {
+// different remix pattern
+const remixPatterns = [
+  // first one - basic
+  {
     rightArp: [
       [0, 2, 4, 2, 0, 2, 4, 2],
       [5, 0, 2, 0, 5, 0, 2, 0],
       [3, 5, 0, 5, 3, 5, 0, 5],
       [5, 0, 2, 0, 5, 0, 2, 0]
     ],
-    chords: [
-      [0, 2, 4], // Bb chord
-      [5, 0, 2], // G chord
-      [3, 5, 0], // Eb chord
-      [5, 0, 2]  // G chord
-    ],
     tempo: 120,
-    name: "Vanished",
-    scale: vanishedScale
+    name: "Vanished"
   },
-  
-  // Crimewave patterns
-  crimewave: {
+  // second one - faster
+  {
     rightArp: [
       [0, 4, 2, 4, 0, 4, 2, 4],
       [5, 2, 0, 2, 5, 2, 0, 2],
       [3, 0, 5, 0, 3, 0, 5, 0],
       [5, 2, 0, 2, 5, 2, 0, 2]
     ],
-    chords: [
-      [0, 2, 4], // Bb chord
-      [5, 0, 2], // G chord
-      [3, 5, 0], // Eb chord
-      [5, 0, 2]  // G chord
-    ],
     tempo: 140,
-    name: "Crimewave",
-    scale: vanishedScale
+    name: "Crimewave"
   },
-  
-  // Courtship Dating patterns
-  courtship: {
+  // third one - syncopated
+  {
     rightArp: [
-      [0, 0, 2, 4, 2, 4, 6, 4],
-      [0, 0, 2, 4, 2, 4, 6, 4],
-      [5, 5, 0, 2, 0, 2, 4, 2],
-      [3, 3, 5, 0, 5, 0, 2, 0]
+      [0, 0, 4, 2, 0, 0, 4, 2],
+      [5, 5, 0, 2, 5, 5, 0, 2],
+      [3, 3, 5, 0, 3, 3, 5, 0],
+      [5, 5, 0, 2, 5, 5, 0, 2]
     ],
-    bassPattern: [
-      [0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0],
-      [5, 5, 5, 5, 5, 5, 5, 5],
-      [3, 3, 3, 3, 3, 3, 3, 3]
-    ],
-    chords: [
-      [0, 2, 4], // Eb minor chord
-      [0, 2, 4], // Same chord
-      [5, 0, 2], // Bb minor chord
-      [3, 5, 0]  // Gb chord
-    ],
-    tempo: 125,
-    name: "Courtship Dating",
-    scale: courtshipScale,
-    pattern: "sixteenth" // special 16th note pattern
+    tempo: 130,
+    name: "Courtship Dating"
   },
-  
-  // Magic Spells patterns
-  magicSpells: {
+  // fourth one - glitchy
+  {
     rightArp: [
-      [0, 2, 4, 0, 2, 4, 0, 4],
-      [0, 2, 4, 0, 2, 4, 0, 4],
-      [5, 0, 2, 5, 0, 2, 5, 2],
-      [0, 2, 4, 0, 2, 4, 0, 4]
+      [0, 4, 0, 2, 4, 0, 2, 0],
+      [5, 0, 5, 2, 0, 5, 2, 5],
+      [3, 5, 3, 0, 5, 3, 0, 3],
+      [5, 0, 5, 2, 0, 5, 2, 5]
     ],
-    bassPattern: [
-      [0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0],
-      [5, 5, 5, 5, 5, 5, 5, 5],
-      [0, 0, 0, 0, 0, 0, 0, 0]
-    ],
-    chords: [
-      [0, 2, 4], // C#m chord
-      [0, 2, 4], // C#m chord
-      [5, 0, 2], // A chord
-      [0, 2, 4]  // Back to C#m
-    ],
-    tempo: 105,
-    name: "Magic Spells",
-    scale: magicSpellsScale,
-    pattern: "ripple" // rippling arpeggio pattern
-  },
-  
-  // Not In Love patterns
-  notInLove: {
-    rightArp: [
-      [0, 2, 4, 0, 2, 4, 0, 4],
-      [0, 2, 4, 0, 2, 4, 0, 4],
-      [5, 0, 2, 5, 0, 2, 5, 2],
-      [3, 5, 0, 3, 5, 0, 3, 0]
-    ],
-    bassPattern: [
-      [0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0],
-      [5, 5, 5, 5, 5, 5, 5, 5],
-      [3, 3, 3, 3, 3, 3, 3, 3]
-    ],
-    chords: [
-      [0, 2, 4], // Bb minor/Db chord
-      [0, 2, 4], // Same chord
-      [5, 0, 2], // Ab chord
-      [3, 5, 0]  // Gb chord
-    ],
-    tempo: 136,
-    name: "Not In Love",
-    scale: notInLoveScale,
-    pattern: "melody"
+    tempo: 150,
+    name: "Not In Love"
   }
-}
+]
 
 // making synths that have the same volume
 function ccSynthmaker(x, y, volumeLevel = -10) {
@@ -563,7 +470,7 @@ function ccSynthmaker(x, y, volumeLevel = -10) {
       type: 'square4'
     },
     envelope: {
-      attack: 0.01, // faster attack
+      attack: 0.01, // faster attack 
       decay: 0.2,
       sustain: 0.4,
       release: 0.5
@@ -577,101 +484,7 @@ function ccSynthmaker(x, y, volumeLevel = -10) {
   return synth
 }
 
-function generateRandomPattern() {
-  // Choose base template randomly
-  const templates = Object.values(patternTemplates)
-  const baseTemplate = templates[Math.floor(Math.random() * templates.length)]
-  
-  // Create a new pattern object
-  const newPattern = {
-    // Use the original song name
-    name: baseTemplate.name,
-    // Vary tempo slightly
-    tempo: baseTemplate.tempo + Math.floor(Math.random() * 30 - 15),
-    pattern: baseTemplate.pattern
-  }
-  
-  // sometimes use a different scale than the template
-  const allScales = [vanishedScale, magicSpellsScale, courtshipScale, notInLoveScale]
-  newPattern.scale = Math.random() > 0.3 ? 
-    baseTemplate.scale : // 70% chance to use original scale
-    allScales[Math.floor(Math.random() * allScales.length)] // 30% chance for different scale
-  
-  // Mix-and-match chords from diff templates
-  newPattern.chords = []
-  for (let i = 0; i < 4; i++) {
-    // Pick a random template for each chord position
-    const randomTemplate = templates[Math.floor(Math.random() * templates.length)]
-    // Get a random chord from that template
-    const randomChord = Math.floor(Math.random() * randomTemplate.chords.length)
-    newPattern.chords.push([...randomTemplate.chords[randomChord]])
-    
-    // Sometimes transpose the chord
-    if (Math.random() > 0.7) {
-      const transpose = Math.floor(Math.random() * 3) - 1 // -1, 0, or 1
-      newPattern.chords[i] = newPattern.chords[i].map(note => 
-        (note + transpose + 7) % 7 // Keep within scale
-      )
-    }
-  }
-  
-  // Create more random arpeggios
-  newPattern.rightArp = []
-  for (let i = 0; i < 4; i++) {
-    // Choose a random template for each arpeggio
-    const randomTemplate = templates[Math.floor(Math.random() * templates.length)]
-    const arpBase = [...randomTemplate.rightArp[Math.floor(Math.random() * randomTemplate.rightArp.length)]]
-    
-    // Deeply randomize it
-    for (let j = 0; j < arpBase.length; j++) {
-      // 40% chance to change each note
-      if (Math.random() > 0.6) {
-        // Pick a random degree from the scale
-        arpBase[j] = Math.floor(Math.random() * 7)
-      }
-    }
-    
-    // Sometimes shift the pattern
-    if (Math.random() > 0.5) {
-      const shiftAmt = Math.floor(Math.random() * arpBase.length)
-      for (let j = 0; j < shiftAmt; j++) {
-        arpBase.push(arpBase.shift())
-      }
-    }
-    
-    newPattern.rightArp.push(arpBase)
-  }
-  
-  // If the base pattern has a bass pattern, include that too but randomize
-  if (baseTemplate.bassPattern) {
-    newPattern.bassPattern = []
-    for (let i = 0; i < 4; i++) {
-      // Sometimes use original bass pattern, sometimes make a new one
-      if (Math.random() > 0.5 && baseTemplate.bassPattern[i]) {
-        newPattern.bassPattern.push([...baseTemplate.bassPattern[i]])
-      } else {
-        // Create a new bass pattern based on the chord
-        const bassPattern = []
-        const rootNote = newPattern.chords[i][0] // Root of the chord
-        
-        for (let j = 0; j < 8; j++) {
-          // Bass mostly plays root notes with occasional variations
-          if (Math.random() > 0.8) {
-            // Occasional variation
-            bassPattern.push(newPattern.chords[i][Math.floor(Math.random() * newPattern.chords[i].length)])
-          } else {
-            // Mostly root notes
-            bassPattern.push(rootNote)
-          }
-        }
-        newPattern.bassPattern.push(bassPattern)
-      }
-    }
-  }
-  
-  return newPattern
-}
-// start/stop crystal castles mode when the button is clicked
+// start/stop crystal castles when the button is clicked
 ccButton.addEventListener('click', () => {
   if (ccModeActive) {
     // turn it off if it's already on
@@ -683,30 +496,25 @@ ccButton.addEventListener('click', () => {
   startCrystalCastlesMode()
 })
 
+// remix button for changing patterns
 remixButton.addEventListener('click', () => {
   if (!ccModeActive) return
   
-  // stop current playback
+  // go to next remix
+  currentRemixStyle = (currentRemixStyle + 1) % remixPatterns.length
+  
+  // stop current sounds
   clearInterval(ccInterval)
   clearInterval(noteRemovalInterval)
   
   // clear old notes
   clearAllNotes()
   
-  // Change button text first to show it's generating
-  remixButton.innerText = "Remixing..."
+  // start the new pattern
+  startCCSequence(currentRemixStyle)
   
-  // Small timeout to show the "Remixing..." text
-  setTimeout(() => {
-    // Generate a completely new random composition
-    currentPattern = generateRandomPattern()
-    
-    // start with new pattern
-    startCCSequence()
-    
-    // Show original song name
-    remixButton.innerText = currentPattern.name
-  }, 100)
+  // show which song pattern we're using
+  remixButton.innerText = remixPatterns[currentRemixStyle].name
 })
 
 // turning on crystal castles mode
@@ -715,10 +523,10 @@ function startCrystalCastlesMode() {
   Tone.start()
   
   // update the button
-  ccButton.innerText = "Stop Transmission"
+  ccButton.innerText = "Stop The Glitch"
   remixButton.style.display = 'block'
+  remixButton.innerText = remixPatterns[currentRemixStyle].name
   ccModeActive = true
-
   
   // reset counters
   step = 0
@@ -726,64 +534,10 @@ function startCrystalCastlesMode() {
   
   // clear out old notes
   clearAllNotes()
-  
-  // Generate an initial random pattern
-  currentPattern = generateRandomPattern()
-  remixButton.innerText = currentPattern.name
-  
-  // Save original mouse before replacing
-  const origMouseDown = canvas.onmousedown
-  const origMouseMove = canvas.onmousemove
-  const origMouseUp = canvas.onmouseup
-  
-  // change how the mouse works -> FIXED VERSION
-  canvas.onmousedown = function(event) {
-    // create notes when clicking
-    const x = event.clientX - canvasBounds.left
-    const y = event.clientY - canvasBounds.top
-    
-    circle(x, y)
-    listofcircles.push([x, y])
-    synthmaker(x, y)
-    isDragging = true
-  }
-  
-  // Fix the mousemove handler to properly drag
-  canvas.onmousemove = function(event) {
-    if (isDragging && listofsynths.length > 0) {
-      const x = event.clientX - canvasBounds.left
-      const y = event.clientY - canvasBounds.top
-      const lastSynth = listofsynths[listofsynths.length - 1]
-      const hz = turnXintoHZ(x)
-      const volume = turnYtoVolume(y)
-      lastSynth.frequency.rampTo(hz, 0.1)
-      lastSynth.volume.rampTo(volume, 0.1)
-
-      // Update the last circle's position instead of creating new ones
-      const lastCircleIndex = listofcircles.length - 1
-      if (lastCircleIndex >= 0) {
-        listofcircles[lastCircleIndex] = [x, y]
-      }
-
-      // Redraw everything
-      ctx.clearRect(0, 0, width, height)
-      morelines()
-      listofcircles.forEach(circl => circle(circl[0], circl[1]))
-    }
-  }
-  
-  // Add mouse up 
-  canvas.onmouseup = function() {
-    isDragging = false
-  }
-  
-  // start playing
-  startCCSequence()
 }
 
 // turning off crystal castles mode
 function stopCrystalCastlesMode() {
-  clearAllNotes()
   // stop all sound loops
   clearInterval(ccInterval)
   clearInterval(noteRemovalInterval)
@@ -794,11 +548,7 @@ function stopCrystalCastlesMode() {
   ccButton.innerText = "Alice Practice Mode"
   remixButton.style.display = 'none'
   ccModeActive = false
-  
-  // put the mouse back to normal
-  canvas.onmousedown = originalMouseDown
-  canvas.onmousemove = originalMouseMove
-  canvas.onmouseup = originalMouseUp
+  clearAllNotes()
 }
 
 // clear all the notes
@@ -817,40 +567,24 @@ function clearAllNotes() {
 
 // playing notes in crystal castles style
 function play(time) {
-  // get current position like in coldplay example
+  // get the current position (exactly like in clocks ex.)
   const s = step % totalSteps
   const b = bar % totalBars
   
-  // Check the pattern type and call the appropriate function
-  if (currentPattern.pattern === "ripple") {
-    playRipplePattern(s, b)
-  } else if (currentPattern.pattern === "sixteenth") {
-    playSixteenthPattern(s, b)
-  } else if (currentPattern.pattern === "melody") {
-    playMelodyPattern(s, b)
-  } else {
-    playBasicPattern(s, b)
-  }
-  
-  // move to next step
-  step++
-  if (s === totalSteps - 1) bar++
-}
-
-// Basic pattern for songs like Vanished and Crimewave
-function playBasicPattern(s, b) {
-  const scales = currentPattern.scale
-  const rightHandArp = currentPattern.rightArp[b]
+  // get the current pattern
+  const currentPattern = remixPatterns[currentRemixStyle]
+  const currentRightHandArp = currentPattern.rightArp[b]
   
   // play based on what step we're on
   if (s % 8 === 0) {
     // bass notes on main beats
-    const chord = currentPattern.chords[b]
+    const chord = leftHandChrd[b]
     
     // Occasionally use extra low bass for variety
     const useExtraLowBass = Math.random() > 0.7
-    const scaleToUse = useExtraLowBass ? scales.leftLow : scales.left
+    const scaleToUse = useExtraLowBass ? leftHandScaleLow : leftHandScale
     const bassNote = scaleToUse[chord[0]]
+
     
     // figure out where to put it
     const freq = Tone.Frequency(bassNote).toFrequency()
@@ -863,31 +597,32 @@ function playBasicPattern(s, b) {
     circle(x, y)
     listofcircles.push([x, y])
     
+    // make the sound
     ccSynthmaker(x, y, -8) // bass a bit louder
   }
   
   // melody notes on beats
   if (s % 2 === 0) {
     const arpIndex = (s / 2) % 8
-    const noteIndex = rightHandArp[arpIndex]
+    const noteIndex = currentRightHandArp[arpIndex]
     
     // Randomly choose octave for variety but not too often
     let scaleChoice = Math.random()
     let scaleToUse
-    let yPosition
+    let yPos
     
     if (scaleChoice > 0.85) {
       // Higher octave occasionally
-      scaleToUse = scales.rightHigh
-      yPosition = height * 0.15 // higher position
+      scaleToUse = rightHandScaleHigh
+      yPos = height * 0.15 // higher position
     } else if (scaleChoice > 0.7) {
       // Lower octave sometimes
-      scaleToUse = scales.rightLow
-      yPosition = height * 0.4 // middle-ish position
+      scaleToUse = rightHandScaleLow
+      yPos = height * 0.4 // middle-ish position
     } else {
       // Regular octave most of the time
-      scaleToUse = scales.right
-      yPosition = height * 0.3 // regular position
+      scaleToUse = rightHandScale
+      yPos = height * 0.3 // regular position
     }
     
     const note = scaleToUse[noteIndex]
@@ -897,236 +632,17 @@ function playBasicPattern(s, b) {
     const xRatio = (Math.log(freq) - Math.log(lowestNote)) / 
                   (Math.log(highestNote) - Math.log(lowestNote))
     const x = Math.max(10, Math.min(width - 10, xRatio * width))
-    const y = yPosition
+    const y = yPos
     
     // make the circle
     circle(x, y)
     listofcircles.push([x, y])
     
     // make the sound
-    ccSynthmaker(x, y, -10) // normal volume
+    ccSynthmaker(x, y, -10) // normal volume for melody
   }
   
   // clean up old notes when there's too many
-  cleanupNotes()
-}
-
-// Magic Spells "ripple" pattern
-function playRipplePattern(s, b) {
-  const scales = currentPattern.scale
-  const arpPattern = currentPattern.rightArp[b]
-  const bassPattern = currentPattern.bassPattern[b]
-  
-  if (s % 2 === 0) { // On every 8th note
-    // Play bass note
-    const bassNote = scales.leftLow[bassPattern[s/2 % 8]]
-    const bassFreq = Tone.Frequency(bassNote).toFrequency()
-    const bassXRatio = (Math.log(bassFreq) - Math.log(lowestNote)) / 
-                    (Math.log(highestNote) - Math.log(lowestNote))
-    const bassX = Math.max(10, Math.min(width - 10, bassXRatio * width))
-    const bassY = height * 0.8 // very low for bass
-    
-    // Draw and play bass
-    circle(bassX, bassY)
-    listofcircles.push([bassX, bassY])
-    ccSynthmaker(bassX, bassY, -8)
-    
-    // Rippling chord pattern - play 3-4 notes in quick succession
-    const chordIdx = arpPattern[s/2 % 8]
-    const notesInChord = [0, 2, 4] // 3 chord notes
-    
-    for (let i = 0; i < notesInChord.length; i++) {
-      setTimeout(() => {
-        if (!ccModeActive) return // Stop if mode was turned off
-        
-        const noteIndex = (chordIdx + notesInChord[i]) % 7 // Stay in scale
-        
-        // Choose which octave to use - alternate between octaves for arpeggio effect
-        const useHigherOctave = i % 2 === 1
-        const scaleToUse = useHigherOctave ? scales.rightHigh : scales.right
-        
-        const note = scaleToUse[noteIndex]
-        
-        // Find position
-        const freq = Tone.Frequency(note).toFrequency()
-        const xRatio = (Math.log(freq) - Math.log(lowestNote)) / 
-                      (Math.log(highestNote) - Math.log(lowestNote))
-        const x = Math.max(10, Math.min(width - 10, xRatio * width))
-        
-        // Space notes vertically based on the chord position
-        const y = height * (0.2 + (i * 0.05))
-        
-        // Make visual and sound
-        circle(x, y)
-        listofcircles.push([x, y])
-        ccSynthmaker(x, y, -12 + i) // Gradually louder for ripple effect
-      }, i * 30) // Staggered timing 
-    }
-  }
-  // Clean up played notes 
-  cleanupNotes()
-}
-
-// Courtship Dating rapid 16th note pattern
-function playSixteenthPattern(s, b) {
-  const scales = currentPattern.scale
-  const rightHandArp = currentPattern.rightArp[b]
-  const bassPattern = currentPattern.bassPattern[b]
-  
-  // Play bass/sustained notes on 8th notes
-  if (s % 2 === 0) {
-    // Play bass note
-    const bassNoteIdx = bassPattern[s/2 % 8]
-    const bassNote = scales.leftLow[bassNoteIdx]
-    const bassFreq = Tone.Frequency(bassNote).toFrequency()
-    const bassXRatio = (Math.log(bassFreq) - Math.log(lowestNote)) / 
-                     (Math.log(highestNote) - Math.log(lowestNote))
-    const bassX = Math.max(10, Math.min(width - 10, bassXRatio * width))
-    const bassY = height * 0.75
-    
-    circle(bassX, bassY)
-    listofcircles.push([bassX, bassY])
-    ccSynthmaker(bassX, bassY, -8)
-    
-    // Also play a chord note
-    const chordNoteIdx = currentPattern.chords[b][Math.floor(s/2) % 3]
-    const chordNote = scales.left[chordNoteIdx]
-    const chordFreq = Tone.Frequency(chordNote).toFrequency()
-    const chordXRatio = (Math.log(chordFreq) - Math.log(lowestNote)) / 
-                      (Math.log(highestNote) - Math.log(lowestNote))
-    const chordX = Math.max(10, Math.min(width - 10, chordXRatio * width))
-    const chordY = height * 0.5
-    
-    circle(chordX, chordY)
-    listofcircles.push([chordX, chordY])
-    ccSynthmaker(chordX, chordY, -10)
-  }
-  
-  // Play melody notes on every step (16th notes)
-  const melodyNoteIdx = rightHandArp[s % 8]
-  
-  // Alternate between octaves
-  const useHighOctave = (s % 4 >= 2)
-  const scaleToUse = useHighOctave ? scales.rightHigh : scales.right
-  
-  const note = scaleToUse[melodyNoteIdx]
-  const freq = Tone.Frequency(note).toFrequency()
-  const xRatio = (Math.log(freq) - Math.log(lowestNote)) / 
-                (Math.log(highestNote) - Math.log(lowestNote))
-  const x = Math.max(10, Math.min(width - 10, xRatio * width))
-  const y = useHighOctave ? height * 0.2 : height * 0.3
-  
-  circle(x, y)
-  listofcircles.push([x, y])
-  ccSynthmaker(x, y, -12)
-  
-  // Sometimes add an extra high note for variation
-  if (Math.random() > 0.85) {
-    const extraNote = scales.rightHigh[(melodyNoteIdx + 2) % 7]
-    const extraFreq = Tone.Frequency(extraNote).toFrequency()
-    const extraXRatio = (Math.log(extraFreq) - Math.log(lowestNote)) / 
-                     (Math.log(highestNote) - Math.log(lowestNote))
-    const extraX = Math.max(10, Math.min(width - 10, extraXRatio * width))
-    const extraY = height * 0.15
-    
-    circle(extraX, extraY)
-    listofcircles.push([extraX, extraY])
-    ccSynthmaker(extraX, extraY, -14)
-  }
-  
-  cleanupNotes()
-}
-
-// Melody Pattern for Not in Love
-function playMelodyPattern(s, b) {
-  const scales = currentPattern.scale
-  const rightHandArp = currentPattern.rightArp[b]
-  const bassPattern = currentPattern.bassPattern[b]
-  
-  // Play bass note and sustained chord on main beats
-  if (s % 8 === 0) {
-    // Play bass note
-    const bassNoteIdx = bassPattern[b]
-    const bassNote = scales.leftLow[bassNoteIdx]
-    const bassFreq = Tone.Frequency(bassNote).toFrequency()
-    const bassXRatio = (Math.log(bassFreq) - Math.log(lowestNote)) / 
-                    (Math.log(highestNote) - Math.log(lowestNote))
-    const bassX = Math.max(10, Math.min(width - 10, bassXRatio * width))
-    const bassY = height * 0.75
-    
-    circle(bassX, bassY)
-    listofcircles.push([bassX, bassY])
-    ccSynthmaker(bassX, bassY, -8)
-    
-    // Play chord notes
-    const chord = currentPattern.chords[b]
-    chord.forEach((noteIdx, i) => {
-      const note = scales.left[noteIdx]
-      const freq = Tone.Frequency(note).toFrequency()
-      const xRatio = (Math.log(freq) - Math.log(lowestNote)) / 
-                    (Math.log(highestNote) - Math.log(lowestNote))
-      const x = Math.max(10, Math.min(width - 10, xRatio * width))
-      const y = height * (0.5 + (i * 0.05)) // Stack chord notes vertically
-      
-      circle(x, y)
-      listofcircles.push([x, y])
-      ccSynthmaker(x, y, -12)
-    })
-  }
-  
-  // Play melody pattern on 8th notes
-  if (s % 2 === 0) {
-    const arpIndex = (s / 2) % 8
-    const noteIndex = rightHandArp[arpIndex]
-    
-    // Use higher octave in second half of bar
-    const useHighOctave = s >= 8
-    const scaleToUse = useHighOctave ? scales.rightHigh : scales.right
-    
-    const note = scaleToUse[noteIndex]
-    const freq = Tone.Frequency(note).toFrequency()
-    const xRatio = (Math.log(freq) - Math.log(lowestNote)) / 
-                  (Math.log(highestNote) - Math.log(lowestNote))
-    const x = Math.max(10, Math.min(width - 10, xRatio * width))
-    const y = useHighOctave ? height * 0.2 : height * 0.3
-    
-    circle(x, y)
-    listofcircles.push([x, y])
-    ccSynthmaker(x, y, -10)
-    
-    // Add occasional sixteenth note for variation
-    if (Math.random() > 0.8) {
-      setTimeout(() => {
-        if (!ccModeActive) return
-        
-        const nextNoteIdx = (noteIndex + 2) % 7
-        const nextNote = scaleToUse[nextNoteIdx]
-        const nextFreq = Tone.Frequency(nextNote).toFrequency()
-        const nextXRatio = (Math.log(nextFreq) - Math.log(lowestNote)) / 
-                        (Math.log(highestNote) - Math.log(lowestNote))
-        const nextX = Math.max(10, Math.min(width - 10, nextXRatio * width))
-        const nextY = useHighOctave ? height * 0.15 : height * 0.25
-        
-        circle(nextX, nextY)
-        listofcircles.push([nextX, nextY])
-        const synth = ccSynthmaker(nextX, nextY, -12)
-        
-        // Quick release for staccato effect
-        setTimeout(() => {
-          if (synth && synth.triggerRelease) {
-            synth.triggerRelease()
-          }
-        }, 100)
-      }, 125)
-    }
-  }
-  
-  cleanupNotes()
-}
-
-
-// Function to clean up old notes
-function cleanupNotes() {
   if (listofsynths.length > 12) {
     for (let i = 0; i < 4; i++) {
       if (listofsynths.length > 0) {
@@ -1144,17 +660,21 @@ function cleanupNotes() {
     morelines()
     listofcircles.forEach(circl => circle(circl[0], circl[1]))
   }
+  
+  // move to next step
+  step++
+  if (s === totalSteps - 1) bar++
 }
 
 // start playing the sequence
-function startCCSequence() {
+function startCCSequence(styleIndex) {
   // get how fast to play
-  const tempo = currentPattern.tempo
+  const tempo = remixPatterns[styleIndex].tempo
   
-  // timing
+  // figure out timing
   const msPerStep = (60000 / tempo) / 4
   
-  // make notes choppy-er
+  // make notes short and choppy like crystal castles
   noteRemovalInterval = setInterval(() => {
     if (listofsynths.length > 0) {
       // stop recent notes quickly
@@ -1165,11 +685,9 @@ function startCCSequence() {
     }
   }, msPerStep * 0.6) // cut off after 60% of the step
   
-  // main loop that calls the play function
+  // main loop that plays notes
   ccInterval = setInterval(() => {
     play()
   }, msPerStep)
 }
 
-
-})
