@@ -32,7 +32,7 @@ window.addEventListener("resize", () => {
     listofcircles.forEach(circl => circle(circl[0], circl[1]))
 })
 
-function linedraw(a,b,c,d, width, color){
+function drawlines(a,b,c,d, width, color){
     ctx = canvas.getContext("2d")
     ctx.beginPath()
     // (X,Y) of one line ending
@@ -51,15 +51,15 @@ function morelines(){
         distanceBetweenLines = width / (numberOctaves - 1)
         x = octave * distanceBetweenLines
         if ((octave === 0) || (octave === numberOctaves-1)) {
-            linedraw(x, 0, x, height, 8, "#ff99bb")
+            drawlines(x, 0, x, height, 8, "#ff99bb")
         } else {
-            linedraw(x, 0, x, height, 4, "#ff99bb")
+            drawlines(x, 0, x, height, 4, "#ff99bb")
         }
         // notes
         for(notes = 0; notes < 8; notes += 1){
             distancebetweennotelines = distanceBetweenLines/8
             x2 = notes * distancebetweennotelines + x
-            linedraw(x2,0,x2,height,1,"white")
+            drawlines(x2,0,x2,height,1,"white")
         }
     }
 }
@@ -315,10 +315,11 @@ document.addEventListener("keydown", (event) => {
 })
 
 //CRYSTAL CASTLES COMPOSITION
-//Making the composition button
+//Creates HTML button 
 const ccButton = document.createElement('button')
 document.body.appendChild(ccButton)
 ccButton.innerText = "Alice Practice Mode"
+// 60px margin from bottom, 20 px right, 10px internal padding
 ccButton.style.position = 'fixed'
 ccButton.style.bottom = '60px' // putting it higher up
 ccButton.style.right = '20px'
@@ -327,9 +328,9 @@ ccButton.style.backgroundColor = 'black'
 ccButton.style.color = 'pink'
 ccButton.style.border = '2px solid pink'
 ccButton.style.fontFamily = 'monospace'
-ccButton.style.zIndex = '100'
+ccButton.style.zIndex = '100' // high z index so it appears in front of other elements
 
-// remix button goes above the other one
+// Creates Remix button
 const remixButton = document.createElement('button')
 document.body.appendChild(remixButton)
 remixButton.innerText = "Remix Pattern"
@@ -342,7 +343,7 @@ remixButton.style.color = 'cyan'
 remixButton.style.border = '2px solid cyan'
 remixButton.style.fontFamily = 'monospace'
 remixButton.style.zIndex = '100'
-remixButton.style.display = 'none' // hidden at first
+remixButton.style.display = 'none' // hidden at first, only appears when cc mode activated
 
 // add instructions that show when page loads
 const instructionsDiv = document.createElement('div')
@@ -351,13 +352,13 @@ instructionsDiv.style.position = 'fixed'
 instructionsDiv.style.top = '20px'
 instructionsDiv.style.left = '20px'
 instructionsDiv.style.padding = '15px'
-instructionsDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.7)'
+instructionsDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.7)' //semi-transparent background
 instructionsDiv.style.color = 'white'
 instructionsDiv.style.fontFamily = 'monospace'
 instructionsDiv.style.fontSize = '14px'
 instructionsDiv.style.borderRadius = '5px'
-instructionsDiv.style.zIndex = '100'
-instructionsDiv.style.maxWidth = '350px'
+instructionsDiv.style.zIndex = '100' //appears over other elements
+instructionsDiv.style.maxWidth = '350px' //max width
 instructionsDiv.innerHTML = `
   <p><b>Crystal Castles Instrument</b></p>
   <p>- Click anywhere to create sounds</p>
@@ -376,46 +377,50 @@ setTimeout(() => {
   // remove after fade completes
   setTimeout(() => {
     instructionsDiv.remove()
-  }, 2000)
-}, 10000)
+  }, 2000) //after 2s = 2000 ms text will disapear 
+}, 10000) //10000ms=10s
 
 // keeping track of stuff
-let ccInterval = null
-let noteRemovalInterval = null
-let ccModeActive = false
-let currentRemixStyle = 0
+// store numbers to internal times that control note creation/removal, so they can be stopped later
+ ccInterval = null
+ noteRemovalInterval = null
+ ccModeActive = false //boolean flag - tracks wheter cc mode is activated
+ currentRemixStyle = 0 // tracks which remix pattern is curently selected, set to index 0
 
-// variables
-let step = 0
-let bar = 0
-let totalSteps = 16
-let totalBars = 4
+// trackers
+ step = 0 //tracks current music position - which step within bar
+ bar = 0 // which bar
+ totalSteps = 16
+ totalBars = 4
 
 // scales from crystal castles songs in multiple octaves
-const rightHandScale = ['Bb4', 'C5', 'Db5', 'Eb5', 'F5', 'G5', 'Ab5']
-const rightHandScaleHigh = ['Bb5', 'C6', 'Db6', 'Eb6', 'F6', 'G6', 'Ab6'] // higher octave
-const rightHandScaleLow = ['Bb3', 'C4', 'Db4', 'Eb4', 'F4', 'G4', 'Ab4'] // lower octave
-const leftHandScale = ['Bb3', 'C4', 'Db4', 'Eb4', 'F4', 'G4', 'Ab4']
-const leftHandScaleLow = ['Bb2', 'C3', 'Db3', 'Eb3', 'F3', 'G3', 'Ab3'] // extra low for bass
+ rightHandScale = ['Bb4', 'C5', 'Db5', 'Eb5', 'F5', 'G5', 'Ab5'] //primary scale for melody notes-->Bb minor scale (Bb, C, Db, Eb, F, G, Ab) in 4th/5th octave range
+ rightHandScaleHigh = ['Bb5', 'C6', 'Db6', 'Eb6', 'F6', 'G6', 'Ab6'] //same Bb minor scale but octave higher (5th/6th octave), for variation in the melody
+ rightHandScaleLow = ['Bb3', 'C4', 'Db4', 'Eb4', 'F4', 'G4', 'Ab4'] //same scale but one octave lower (3rd/4th octave)
+ leftHandScale = ['Bb3', 'C4', 'Db4', 'Eb4', 'F4', 'G4', 'Ab4'] //scale for bass/accompaniment notes 3rd/4th octave 
+ leftHandScaleLow = ['Bb2', 'C3', 'Db3', 'Eb3', 'F3', 'G3', 'Ab3'] // extra low for bass--> even lower octave of the same scale (2nd/3rd octave)
 
 // arpeggio patterns
-const rightHandArp = [
+//inner array represents one bar's worth of notes, each number being an index into the scale arrays ^
+// patterns create arpeggios (broken chords) based on Bb, G, Eb, and G chords
+ rightHandArp = [
   [0, 2, 4, 2, 0, 2, 4, 2],  // Bb chord 
   [5, 0, 2, 0, 5, 0, 2, 0],  // G chord 
   [3, 5, 0, 5, 3, 5, 0, 5],  // Eb chord 
   [5, 0, 2, 0, 5, 0, 2, 0]   // G chord again
 ]
-
-const leftHandChrd = [
+// array defines the chord progression for bass notes
+// Each inner array represents notes of a chord (using scale indices)
+ leftHandChrd = [
   [0, 2, 4], // Bb chord
   [5, 0, 2], // G chord
   [3, 5, 0], // Eb chord
   [5, 0, 2]  // G chord
 ]
 
-// different remix pattern
-const remixPatterns = [
-  // first one - basic
+// different remix patterns based on diff cc songs
+ remixPatterns = [
+  // vanished - 120 BPM
   {
     rightArp: [
       [0, 2, 4, 2, 0, 2, 4, 2],
@@ -426,7 +431,7 @@ const remixPatterns = [
     tempo: 120,
     name: "Vanished"
   },
-  // second one - faster
+  // Crimewave - 140 BPM
   {
     rightArp: [
       [0, 4, 2, 4, 0, 4, 2, 4],
@@ -437,7 +442,7 @@ const remixPatterns = [
     tempo: 140,
     name: "Crimewave"
   },
-  // third one - syncopated
+  // Courtship Datinf - 130 BPM
   {
     rightArp: [
       [0, 0, 4, 2, 0, 0, 4, 2],
@@ -448,7 +453,7 @@ const remixPatterns = [
     tempo: 130,
     name: "Courtship Dating"
   },
-  // fourth one - glitchy
+  //Not in love - 150 BPM
   {
     rightArp: [
       [0, 4, 0, 2, 4, 0, 2, 0],
@@ -461,10 +466,10 @@ const remixPatterns = [
   }
 ]
 
-// making synths that have the same volume
+// cc synth. takes x, y, and (optional) volume level defaulting at -10 
 function ccSynthmaker(x, y, volumeLevel = -10) {
-  hz = turnXintoHZ(x)
-  const synth = new Tone.Synth({
+  hz = turnXintoHZ(x) //converts x into hz value
+   synth = new Tone.Synth({
     portamento: 0.2,
     oscillator: {
       type: 'square4'
@@ -477,56 +482,53 @@ function ccSynthmaker(x, y, volumeLevel = -10) {
     }
   }).toDestination()
 
-  // set volume the same for all notes
+  //sets volume of synth to the specified level, rather than deriving it from the y-coordinate
   synth.volume.value = volumeLevel
-  synth.triggerAttack(hz)
-  listofsynths.push(synth)
+  synth.triggerAttack(hz) //starts playing at calculated frequency
+  listofsynths.push(synth) // adds synth to global list of active synths
   return synth
 }
 
-// start/stop crystal castles when the button is clicked
+// start/stop cc when button when clicked
 ccButton.addEventListener('click', () => {
   if (ccModeActive) {
-    // turn it off if it's already on
+    // if cc mode in on, turn it off
     stopCrystalCastlesMode()
     return
   }
   
-  // turn it on
+  // if cc mode off, turn it on
   startCrystalCastlesMode()
 })
 
-// remix button for changing patterns
+// start remix button when clicked
 remixButton.addEventListener('click', () => {
-  if (!ccModeActive) return
-  
-  // go to next remix
-  currentRemixStyle = (currentRemixStyle + 1) % remixPatterns.length
-  
-  // stop current sounds
-  clearInterval(ccInterval)
+  if (!ccModeActive) return //makes sure remix button only works when cc mode is active
+  currentRemixStyle = (currentRemixStyle + 1) % remixPatterns.length   // go to next remix
+  // stop current timers that control music sequence
+  clearInterval(ccInterval) 
   clearInterval(noteRemovalInterval)
   
-  // clear old notes
+  // clears all playing notes and circles
   clearAllNotes()
   
   // start the new pattern
   startCCSequence(currentRemixStyle)
   
-  // show which song pattern we're using
-  remixButton.innerText = remixPatterns[currentRemixStyle].name
+  // show which song pattern is playing
+  remixButton.innerText = remixPatterns[currentRemixStyle].name. 
 })
 
-// turning on crystal castles mode
+// turning on cc mode
 function startCrystalCastlesMode() {
   // start the sounds
   Tone.start()
   
-  // update the button
+  // update the UI to show stop remix button
   ccButton.innerText = "Stop The Glitch"
   remixButton.style.display = 'block'
   remixButton.innerText = remixPatterns[currentRemixStyle].name
-  ccModeActive = true
+  ccModeActive = true //sets active flag to
   
   // reset counters
   step = 0
@@ -534,6 +536,7 @@ function startCrystalCastlesMode() {
   
   // clear out old notes
   clearAllNotes()
+  startCCSequence(currentRemixStyle)
 }
 
 // turning off crystal castles mode
