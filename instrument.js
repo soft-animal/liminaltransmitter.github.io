@@ -515,11 +515,11 @@ remixButton.addEventListener('click', () => {
   // start the new pattern
   startCCSequence(currentRemixStyle)
   
-  // show which song pattern is playing
+  // updates button text to show which song pattern is playing
   remixButton.innerText = remixPatterns[currentRemixStyle].name. 
 })
 
-// turning on cc mode
+// turning on cc mode, handles buttons, starting music, high level controls 
 function startCrystalCastlesMode() {
   // start the sounds
   Tone.start()
@@ -536,63 +536,61 @@ function startCrystalCastlesMode() {
   
   // clear out old notes
   clearAllNotes()
-  startCCSequence(currentRemixStyle)
+  startCCSequence(currentRemixStyle) //starts the actual music sequence using the current remix style
 }
 
-// turning off crystal castles mode
+// turning off cc mode
 function stopCrystalCastlesMode() {
-  // stop all sound loops
+  // stop all timing intervals that control music and clear references
   clearInterval(ccInterval)
   clearInterval(noteRemovalInterval)
   ccInterval = null
   noteRemovalInterval = null
   
-  // update the buttons
+ // update the UI buttons to original button text and hides remix button
   ccButton.innerText = "Alice Practice Mode"
   remixButton.style.display = 'none'
-  ccModeActive = false
+  ccModeActive = false / sets active flag to false, or says cc mode is off
   clearAllNotes()
 }
 
-// clear all the notes
+// function that handles clearing all the notes from the screen
 function clearAllNotes() {
-  // stop all sounds
-  listofsynths.forEach(synth => synth.triggerRelease())
+  listofsynths.forEach(synth => synth.triggerRelease()) // stop all currently playing sounds by triggering their release
   
-  // clear all the arrays
+  // clear arrays that track active synths and circles
   listofsynths = []
   listofcircles = []
   
-  // redraw the grid
+  // clear the canvas and redraw the grid lines
   ctx.clearRect(0, 0, width, height)
   morelines()
 }
-
-// playing notes in crystal castles style
+//MUSIC GENERATION
+//calculate current position in music (ie which step within the bar and which bar within pattern)
 function play(time) {
   // get the current position (exactly like in clocks ex.)
   const s = step % totalSteps
   const b = bar % totalBars
   
-  // get the current pattern
+  //pulls the selected remix patterns and the specific arpeggio for the current bar
   const currentPattern = remixPatterns[currentRemixStyle]
   const currentRightHandArp = currentPattern.rightArp[b]
   
-  // play based on what step we're on
+// plays bass notes starting on the first beat of every 8 steps (twice per bar)
   if (s % 8 === 0) {
-    // bass notes on main beats
+    // retrieved chord for the current bar from the respective bass progression
     const chord = leftHandChrd[b]
     
-    // Occasionally use extra low bass for variety
-    const useExtraLowBass = Math.random() > 0.7
+    //Randomly selects between reg. and extra-low bass scale
+    const useExtraLowBass = Math.random() > 0.7 // 30% chance of using lower scale
     const scaleToUse = useExtraLowBass ? leftHandScaleLow : leftHandScale
-    const bassNote = scaleToUse[chord[0]]
+    const bassNote = scaleToUse[chord[0]] //selects the root note of the current chord in selected octave
 
-    
-    // figure out where to put it
-    const freq = Tone.Frequency(bassNote).toFrequency()
-    const xRatio = (Math.log(freq) - Math.log(lowestNote)) / 
-                  (Math.log(highestNote) - Math.log(lowestNote))
+    // figure out where to put circle corresponding to note being played
+    const freq = Tone.Frequency(bassNote).toFrequency() //converts note name to freqency in hz
+    const xRatio = (Math.log(freq) - Math.log(lowestNote)) / (Math.log(highestNote) - Math.log(lowestNote)) //calculates placement position on x-axis using log scale
+     x = Math.max(10, Math.min(width - 10, xRatio * width))//constrains x within screen
     const x = Math.max(10, Math.min(width - 10, xRatio * width))
     const y = height * 0.7 // lower for bass
     
