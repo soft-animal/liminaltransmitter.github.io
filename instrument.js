@@ -364,8 +364,9 @@ instructionsDiv.innerHTML = `
   <p>- Click anywhere to create sounds</p>
   <p>- Click & drag to change pitch</p>
   <p>- Press D to toggle drums</p>
+  <p>- Press 1, 2, or 3 to switch between different drum patterns</p>
   <p>- Click "Alice Practice Mode" for algorithmically generated Crystal Castles patterns</p>
-  <p>- Click "Remix Pattern" to cycle through different patterns</p>
+  <p>- Click song titles to cycle through different patterns</p>
   <p>- Hold Shift + Click to delete sounds</p>
 `
 
@@ -378,7 +379,7 @@ setTimeout(() => {
   setTimeout(() => {
     instructionsDiv.remove()
   }, 2000) //after 2s = 2000 ms text will disapear 
-}, 10000) //10000ms=10s
+}, 20000) //20000ms=20s
 
 // keeping track of stuff
 // store numbers to internal times that control note creation/removal, so they can be stopped later
@@ -504,6 +505,8 @@ ccButton.addEventListener('click', () => {
 // start remix button when clicked
 remixButton.addEventListener('click', () => {
   if (!ccModeActive) return //makes sure remix button only works when cc mode is active
+  
+  Tone.start()
   currentRemixStyle = (currentRemixStyle + 1) % remixPatterns.length   // go to next remix
   // stop current timers that control music sequence
   clearInterval(ccInterval) 
@@ -516,7 +519,7 @@ remixButton.addEventListener('click', () => {
   startCCSequence(currentRemixStyle)
   
   // updates button text to show which song pattern is playing
-  remixButton.innerText = remixPatterns[currentRemixStyle].name. 
+  remixButton.innerText = remixPatterns[currentRemixStyle].name 
 })
 
 // turning on cc mode, handles buttons, starting music, high level controls 
@@ -550,7 +553,7 @@ function stopCrystalCastlesMode() {
  // update the UI buttons to original button text and hides remix button
   ccButton.innerText = "Alice Practice Mode"
   remixButton.style.display = 'none'
-  ccModeActive = false / sets active flag to false, or says cc mode is off
+  ccModeActive = false // sets active flag to false, or says cc mode is off
   clearAllNotes()
 }
 
@@ -570,80 +573,83 @@ function clearAllNotes() {
 //calculate current position in music (ie which step within the bar and which bar within pattern)
 function play(time) {
   // get the current position (exactly like in clocks ex.)
-  const s = step % totalSteps
-  const b = bar % totalBars
+   s = step % totalSteps
+   b = bar % totalBars
   
   //pulls the selected remix patterns and the specific arpeggio for the current bar
-  const currentPattern = remixPatterns[currentRemixStyle]
-  const currentRightHandArp = currentPattern.rightArp[b]
+   currentPattern = remixPatterns[currentRemixStyle]
+   currentRightHandArp = currentPattern.rightArp[b]
   
 // plays bass notes starting on the first beat of every 8 steps (twice per bar)
   if (s % 8 === 0) {
     // retrieved chord for the current bar from the respective bass progression
-    const chord = leftHandChrd[b]
+     chord = leftHandChrd[b]
     
     //Randomly selects between reg. and extra-low bass scale
-    const useExtraLowBass = Math.random() > 0.7 // 30% chance of using lower scale
-    const scaleToUse = useExtraLowBass ? leftHandScaleLow : leftHandScale
-    const bassNote = scaleToUse[chord[0]] //selects the root note of the current chord in selected octave
+     useExtraLowBass = Math.random() > 0.7 // 30% chance of using lower scale
+     scaleToUse = useExtraLowBass ? leftHandScaleLow : leftHandScale
+     bassNote = scaleToUse[chord[0]] //selects the root note of the current chord in selected octave
 
     // figure out where to put circle corresponding to note being played
-    const freq = Tone.Frequency(bassNote).toFrequency() //converts note name to freqency in hz
-    const xRatio = (Math.log(freq) - Math.log(lowestNote)) / (Math.log(highestNote) - Math.log(lowestNote)) //calculates placement position on x-axis using log scale
+     freq = Tone.Frequency(bassNote).toFrequency() //converts note name to freqency in hz
+     xRatio = (Math.log(freq) - Math.log(lowestNote)) / (Math.log(highestNote) - Math.log(lowestNote)) //calculates placement position on x-axis using log scale
      x = Math.max(10, Math.min(width - 10, xRatio * width))//constrains x within screen
-    const x = Math.max(10, Math.min(width - 10, xRatio * width))
-    const y = height * 0.7 // lower for bass
+     y = height * 0.7 //setting y to 70% of screen height
     
-    // make the circle
+    // draw the circles and add to the tracking list
     circle(x, y)
     listofcircles.push([x, y])
-    
-    // make the sound
-    ccSynthmaker(x, y, -8) // bass a bit louder
+
+    ccSynthmaker(x, y, -8) // creates the bass synth at slightly higher volume, -8 instead of -10
   }
   
   // melody notes on beats
-  if (s % 2 === 0) {
-    const arpIndex = (s / 2) % 8
-    const noteIndex = currentRightHandArp[arpIndex]
+  if (s % 2 === 0) { //executes of every other step, so the melody notes play more often than bass
+    
+     //calculates which note from the arpeggio pattern should play based on the current step
+    arpIndex = (s / 2) % 8
+    noteIndex = currentRightHandArp[arpIndex]
     
     // Randomly choose octave for variety but not too often
-    let scaleChoice = Math.random()
-    let scaleToUse
+    let scaleChoice = Math.random() //generates ranodom decimal 0-1
+    //declare variables that will be assigned values later based on random #
+    let scaleToUse 
     let yPos
     
     if (scaleChoice > 0.85) {
-      // Higher octave occasionally
+      // Higher octave (15% chance)
       scaleToUse = rightHandScaleHigh
-      yPos = height * 0.15 // higher position
+      yPos = height * 0.15 // higher position on screen
+
     } else if (scaleChoice > 0.7) {
-      // Lower octave sometimes
+
+      // Lower octave (15% chance)
       scaleToUse = rightHandScaleLow
-      yPos = height * 0.4 // middle-ish position
+      yPos = height * 0.4 // middle position on screen
+
     } else {
-      // Regular octave most of the time
+      // Regular octave (70% chance)
       scaleToUse = rightHandScale
       yPos = height * 0.3 // regular position
     }
     
-    const note = scaleToUse[noteIndex]
+     note = scaleToUse[noteIndex] //selects actual note from chosen scale
     
-    // figure out where to put it
-    const freq = Tone.Frequency(note).toFrequency()
-    const xRatio = (Math.log(freq) - Math.log(lowestNote)) / 
+    //calculates position for the actual note from the chosen scale
+     freq = Tone.Frequency(note).toFrequency()
+     xRatio = (Math.log(freq) - Math.log(lowestNote)) / 
                   (Math.log(highestNote) - Math.log(lowestNote))
-    const x = Math.max(10, Math.min(width - 10, xRatio * width))
-    const y = yPos
+     x = Math.max(10, Math.min(width - 10, xRatio * width))
+     y = yPos
     
-    // make the circle
+    // make the circle and log it in list of circles
     circle(x, y)
     listofcircles.push([x, y])
     
-    // make the sound
-    ccSynthmaker(x, y, -10) // normal volume for melody
+    ccSynthmaker(x, y, -10) // make the melody synth at normal volume (-10)
   }
   
-  // clean up old notes when there's too many
+  // if theres more than 12 notes at a time, removes the 4 oldest notes
   if (listofsynths.length > 12) {
     for (let i = 0; i < 4; i++) {
       if (listofsynths.length > 0) {
@@ -656,39 +662,38 @@ function play(time) {
       }
     }
     
-    // redraw everything
+    // redraw everything to make sure visuals stay matching audio after removing notes
     ctx.clearRect(0, 0, width, height)
     morelines()
     listofcircles.forEach(circl => circle(circl[0], circl[1]))
   }
   
-  // move to next step
+  // move position counters to the next step, moving to the next bar when reaching the end of current bar
   step++
   if (s === totalSteps - 1) bar++
 }
 
-// start playing the sequence
-function startCCSequence(styleIndex) {
-  // get how fast to play
-  const tempo = remixPatterns[styleIndex].tempo
+//TIMER FUNCTIONS
+
+function startCCSequence(styleIndex) { // starts timing intervals for cc musical sequence
+
+  tempo = remixPatterns[styleIndex].tempo // retrieves BPM from the selected pattern
   
-  // figure out timing
-  const msPerStep = (60000 / tempo) / 4
+  msPerStep = (60000 / tempo) / 4 //converts tempo to ms/step (60000ms (1 minute) divided by the tempo gives milliseconds per beat, then divided by 4 for 16th notes (4 steps per beat))
   
-  // make notes short and choppy like crystal castles
-  noteRemovalInterval = setInterval(() => {
-    if (listofsynths.length > 0) {
-      // stop recent notes quickly
-      const lastIndex = listofsynths.length - 1
-      if (lastIndex >= 0) {
-        listofsynths[lastIndex].triggerRelease()
+  // make notes choppy
+  noteRemovalInterval = setInterval(() => { //creates timer that will repeadtedly run this chunk 
+    if (listofsynths.length > 0) { //checks in there are any aynths in list, if list empty doesnt do anything
+  
+    lastIndex = listofsynths.length - 1 //finds position of most recently added synth (array starts at 0 so lenth-1)
+      if (lastIndex >= 0) { //check if valid position
+        listofsynths[lastIndex].triggerRelease() //stops most recent synth, not imeediately but gets it to fade out
       }
     }
-  }, msPerStep * 0.6) // cut off after 60% of the step
+  }, msPerStep * 0.6) //runs this chunk after 60% of step has passed to cut it off early
   
   // main loop that plays notes
-  ccInterval = setInterval(() => {
-    play()
-  }, msPerStep)
+  ccInterval = setInterval(() => { 
+    play() //everytime it runs it adds a new note based on the current step in musical pattern
+  }, msPerStep) //tells loop how often to add note, based on tempo of current cc pattern
 }
-
